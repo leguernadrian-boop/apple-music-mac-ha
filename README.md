@@ -1,3 +1,6 @@
+<div align="center">
+  <img src="logo.png" width="200" alt="Logo Apple Music">
+</div>
 # 🍎 Apple Music for Mac (Modern)
 
 ![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)
