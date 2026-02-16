@@ -1,4 +1,8 @@
 {
   "name": "Apple Music for Mac (Modern)",
-  "render_readme": true
+  "render_readme": true,
+  "country": "FR",
+  "homeassistant": "2025.1.0",
+  "zip_release": false,
+  "content_in_root": false
 }
