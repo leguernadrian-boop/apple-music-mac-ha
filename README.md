@@ -97,4 +97,4 @@ Pour tester, lancez : osascript -e 'tell application "Music" to get name of curr
 
 🤝 Crédits
 Développé par @adrianleguern.
-Inspiré par le besoin d'une intégration macOS moderne pour Home Assistant.![unnamed](https://github.com/user-attachments/assets/dbdc3c41-d208-42b4-805f-fac3523e8590)
+Inspiré par le besoin d'une intégration macOS moderne pour Home Assistant.
