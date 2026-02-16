@@ -10,7 +10,7 @@ Apple Music for Mac (Modern) est une intégration fluide et élégante pour cont
 ---
 
 ## 🧐 Qu'est-ce que c'est ?
-Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous permet non seulement de piloter la lecture, mais aussi d'afficher des informations riches comme les pochettes d'album en haute définition.
+Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous permet de piloter la lecture et d'afficher des informations riches comme les pochettes d'album en haute définition.
 
 ### ✨ Fonctionnalités
 * 🛠 **Contrôle complet** : Lecture, Pause, Suivant, Précédent.
@@ -26,12 +26,13 @@ Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous per
 ### 1️⃣ Prérequis sur le Mac
 1. **Node.js** doit être installé sur votre machine.
 2. Créez un dossier nommé `apple-music-modern`.
-3. Installez le serveur : `npm install express`.
+3. Installez les dépendances : `npm install express`.
 
 ### 2️⃣ Installation dans Home Assistant
 * **Via HACS** : Ajoutez ce dépôt en tant que *Custom Repository*.
 * **Téléchargement** : Cliquez sur installer et **redémarrez Home Assistant**.
 * **Configuration** : Allez dans *Paramètres* → *Appareils et services* → *Ajouter l'intégration*.
+* Entrez l'**IP de votre Mac** et le port `8181`.
 
 ---
 
@@ -39,36 +40,61 @@ Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous per
 
 Pour que l'intégration fonctionne, le fichier `server.js` doit tourner sur votre Mac. 
 
-1. Copiez le code suivant dans votre fichier `server.js`.
-2. Lancez-le avec la commande : `node server.js`
+1. Copiez le code ci-dessous dans un fichier `server.js`.
+2. Lancez-le avec : `node server.js`
 
 <details>
-<summary>👉 Cliquez pour voir le code du serveur</summary>
+<summary>👉 Cliquez pour voir le code du serveur (server.js)</summary>
 
 ```javascript
-// [Insère ici ton code server.js version AppleScript que nous avons validé]
+const express = require('express');
+const { exec } = require('child_process');
+const app = express();
+
+app.use(express.json());
+
+app.get('/now_playing', (req, res) => {
+    const script = `
+        tell application "Music"
+            if it is running then
+                set tName to name of current track
+                set tArtist to artist of current track
+                set tAlbum to album of current track
+                set tVol to sound volume
+                set tState to player state as text
+                return "{\\"player_state\\": \\"" & tState & "\\", \\"name\\": \\"" & tName & "\\", \\"artist\\": \\"" & tArtist & "\\", \\"album\\": \\"" & tAlbum & "\\", \\"volume\\": " & tVol & "}"
+            else
+                return "{\\"player_state\\": \\"stopped\\"}"
+            end if
+        end tell
+    `;
+    exec(\`osascript -e '\${script}'\`, (error, stdout) => {
+        try { res.send(JSON.parse(stdout.trim())); } 
+        catch (e) { res.send({ player_state: "stopped" }); }
+    });
+});
+
+app.put('/play', (req, res) => exec('osascript -e "tell application \\"Music\\" to play"', () => res.send({status:"ok"})));
+app.put('/pause', (req, res) => exec('osascript -e "tell application \\"Music\\" to pause"', () => res.send({status:"ok"})));
+app.put('/next', (req, res) => exec('osascript -e "tell application \\"Music\\" to next track"', () => res.send({status:"ok"})));
+app.put('/previous', (req, res) => exec('osascript -e "tell application \\"Music\\" to previous track"', () => res.send({status:"ok"})));
+app.put('/volume', (req, res) => {
+    const vol = req.body.level;
+    exec(\`osascript -e "tell application \\"Music\\" to set sound volume to \${vol}"\`, () => res.send({status:"ok"}));
+});
+
+app.listen(8181, () => console.log('Moteur Apple Music prêt sur 8181 !'));
 </details>
 
-🔐 Autorisations macOS
-[!IMPORTANT]
+🔐 Autorisations macOS (Important)
 Pour que le serveur puisse lire les infos de Musique, vous devez donner une autorisation :
 
 Réglages Système → Confidentialité et sécurité → Automatisation.
 
 Cochez la case Musique sous l'application Terminal.
 
-Si besoin, lancez : osascript -e 'tell application "Music" to get name of current track'
-
-❓ Troubleshooting
-L'entité est indisponible ? Vérifiez que le serveur node tourne sur le port 8181.
-
-Le volume ne bouge pas ? Assurez-vous d'avoir bien donné les droits d'Automatisation.
-
-Pas d'image ? L'image nécessite une connexion internet pour interroger l'API iTunes.
+Pour tester, lancez : osascript -e 'tell application "Music" to get name of current track'
 
 🤝 Crédits
 Développé par @adrianleguern.
-Inspiré par la communauté Home Assistant et le besoin d'une intégration macOS moderne.
-
-
----
+Inspiré par le besoin d'une intégration macOS moderne pour Home Assistant.![unnamed](https://github.com/user-attachments/assets/dbdc3c41-d208-42b4-805f-fac3523e8590)
