@@ -1,10 +1,7 @@
 import requests
 import logging
-from homeassistant.components.media_player import MediaPlayerEntity
-from homeassistant.components.media_player.const import (
-    SUPPORT_PLAY, SUPPORT_PAUSE, SUPPORT_NEXT_TRACK, 
-    SUPPORT_PREVIOUS_TRACK, SUPPORT_VOLUME_SET
-)
+from homeassistant.components.media_player import MediaPlayerEntity, MediaPlayerEntityFeature
+from homeassistant.const import STATE_PLAYING, STATE_PAUSED, STATE_OFF
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,20 +14,38 @@ class AppleMusicModern(MediaPlayerEntity):
     def __init__(self, host, port):
         self._url = f"http://{host}:{port}"
         self._attr_name = "Apple Music Mac"
-        self._attr_unique_id = f"apple_music_mac_{host}" # ID Unique pour éviter l'échec
-        self._state = "off"
+        self._attr_unique_id = f"apple_music_mac_{host}"
+        self._state = STATE_OFF
         self._title = None
         self._artist = None
+        self._volume = 0
 
     @property
-    def state(self): return self._state
+    def state(self):
+        return self._state
+
     @property
-    def media_title(self): return self._title
+    def media_title(self):
+        return self._title
+
     @property
-    def media_artist(self): return self._artist
+    def media_artist(self):
+        return self._artist
+    
+    @property
+    def volume_level(self):
+        return self._volume
+
     @property
     def supported_features(self):
-        return SUPPORT_PLAY | SUPPORT_PAUSE | SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK | SUPPORT_VOLUME_SET
+        # C'est ici que ça changeait : on utilise les nouvelles Features
+        return (
+            MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.VOLUME_SET
+        )
 
     def update(self):
         try:
@@ -39,14 +54,23 @@ class AppleMusicModern(MediaPlayerEntity):
                 data = r.json()
                 self._title = data.get("name")
                 self._artist = data.get("artist")
+                self._volume = data.get("volume", 0) / 100
+                
                 state = data.get("player_state")
-                self._state = "playing" if state == "playing" else "paused"
+                if state == "playing":
+                    self._state = STATE_PLAYING
+                elif state == "paused":
+                    self._state = STATE_PAUSED
+                else:
+                    self._state = STATE_OFF
             else:
-                self._state = "off"
+                self._state = STATE_OFF
         except Exception:
-            self._state = "off"
+            self._state = STATE_OFF
 
     def media_play(self): requests.put(f"{self._url}/play")
     def media_pause(self): requests.put(f"{self._url}/pause")
     def media_next_track(self): requests.put(f"{self._url}/next")
     def media_previous_track(self): requests.put(f"{self._url}/previous")
+    def set_volume_level(self, volume):
+        requests.put(f"{self._url}/volume", json={"level": int(volume * 100)})
