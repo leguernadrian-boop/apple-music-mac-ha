@@ -1,0 +1,9 @@
+{
+  "domain": "apple_music_mac",
+  "name": "Apple Music for Mac (Modern)",
+  "codeowners": ["@adrianleguern"],
+  "config_flow": true,
+  "documentation": "https://github.com/adrianleguern/apple-music-mac-ha",
+  "iot_class": "local_polling",
+  "version": "2026.1.0"
+}
