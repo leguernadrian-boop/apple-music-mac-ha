@@ -1,86 +1,49 @@
+# 🍎 Apple Music for Mac (Modern)
+
 ![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)
 ![version](https://img.shields.io/badge/version-2026.1.0-blue.svg)
+![maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
+![platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 
-# 🍎 Apple Music for Mac (Modern)
-...# 🍎 Apple Music for Mac (Modern)
+Apple Music for Mac (Modern) est une intégration fluide et élégante pour contrôler votre musique directement depuis votre tableau de bord **Home Assistant**.
 
-Cette intégration permet de contrôler Apple Music sur votre Mac directement depuis **Home Assistant**. 
+---
+
+## 🧐 Qu'est-ce que c'est ?
+Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous permet non seulement de piloter la lecture, mais aussi d'afficher des informations riches comme les pochettes d'album en haute définition.
 
 ### ✨ Fonctionnalités
-* **Lecture / Pause / Suivant / Précédent** ⏯️
-* **Contrôle du volume** en temps réel 🔊
-* **Pochettes d'album HD** (via iTunes API) 🖼️
-* **État de lecture** (Titre, Artiste, Album) 🎶
+* 🛠 **Contrôle complet** : Lecture, Pause, Suivant, Précédent.
+* 🔊 **Gestion du volume** : Réglage précis du son de l'application Musique.
+* 🖼 **Artwork HD** : Récupération automatique de la pochette via iTunes API.
+* 🎶 **Infos Live** : Titre, Artiste et Album mis à jour en temps réel.
+* 🚀 **Zéro latence** : Communication directe via un serveur local léger.
 
 ---
 
-## 🛠️ 1. Prérequis sur le Mac
+## 🛠 Installation
 
-1. **Node.js** doit être installé sur votre Mac.
-2. Créez un dossier `apple-music-modern` et placez-y le fichier `server.js` (code ci-dessous).
-3. Installez Express dans ce dossier : `npm install express`.
+### 1️⃣ Prérequis sur le Mac
+1. **Node.js** doit être installé sur votre machine.
+2. Créez un dossier nommé `apple-music-modern`.
+3. Installez le serveur : `npm install express`.
 
-### 🔐 Autorisations macOS (Étape Cruciale)
-Pour que macOS autorise le partage des infos :
-1. Allez dans **Réglages Système** > **Confidentialité et sécurité** > **Automatisation**.
-2. Sous **Terminal**, cochez la case **Musique**.
-3. Pour forcer la demande de permission, lancez cette commande :
-   `osascript -e 'tell application "Music" to get name of current track'`
-
----
-
-## 🚀 2. Installation de l'Intégration
-
-### Via HACS
-1. Ajoutez ce dépôt comme **Dépôt personnalisé** (Custom Repository) dans HACS.
-2. Cliquez sur **Télécharger**.
-3. **Redémarrez Home Assistant**.
-
-### Configuration dans Home Assistant
-1. Allez dans **Paramètres** > **Appareils et services** > **Ajouter l'intégration**.
-2. Cherchez **Apple Music for Mac (Modern)**.
-3. Entrez l'**adresse IP** de votre Mac et le port `8181`.
+### 2️⃣ Installation dans Home Assistant
+* **Via HACS** : Ajoutez ce dépôt en tant que *Custom Repository*.
+* **Téléchargement** : Cliquez sur installer et **redémarrez Home Assistant**.
+* **Configuration** : Allez dans *Paramètres* → *Appareils et services* → *Ajouter l'intégration*.
 
 ---
 
-## 🖥️ 3. Code du Serveur (server.js)
+## 🖥️ Configuration du Serveur (Mac)
 
-Copiez ce code dans un fichier nommé `server.js` sur votre Mac et lancez-le avec `node server.js` :
+Pour que l'intégration fonctionne, le fichier `server.js` doit tourner sur votre Mac. 
+
+1. Copiez le code suivant dans votre fichier `server.js`.
+2. Lancez-le avec la commande : `node server.js`
+
+<details>
+<summary>👉 Cliquez pour voir le code du serveur</summary>
 
 ```javascript
-const express = require('express');
-const { exec } = require('child_process');
-const app = express();
-app.use(express.json());
-
-app.get('/now_playing', (req, res) => {
-    const script = `
-        tell application "Music"
-            if it is running then
-                set tName to name of current track
-                set tArtist to artist of current track
-                set tAlbum to album of current track
-                set tVol to sound volume
-                set tState to player state as text
-                return "{\\"player_state\\": \\"" & tState & "\\", \\"name\\": \\"" & tName & "\\", \\"artist\\": \\"" & tArtist & "\\", \\"album\\": \\"" & tAlbum & "\\", \\"volume\\": " & tVol & "}"
-            else
-                return "{\\"player_state\\": \\"stopped\\"}"
-            end if
-        end tell
-    `;
-    exec(\`osascript -e '\${script}'\`, (error, stdout) => {
-        try { res.send(JSON.parse(stdout.trim())); } 
-        catch (e) { res.send({ player_state: "stopped" }); }
-    });
-});
-
-app.put('/play', (req, res) => exec('osascript -e "tell application \\"Music\\" to play"', () => res.send({status:"ok"})));
-app.put('/pause', (req, res) => exec('osascript -e "tell application \\"Music\\" to pause"', () => res.send({status:"ok"})));
-app.put('/next', (req, res) => exec('osascript -e "tell application \\"Music\\" to next track"', () => res.send({status:"ok"})));
-app.put('/previous', (req, res) => exec('osascript -e "tell application \\"Music\\" to previous track"', () => res.send({status:"ok"})));
-app.put('/volume', (req, res) => {
-    const vol = req.body.level;
-    exec(\`osascript -e "tell application \\"Music\\" to set sound volume to \${vol}"\`, () => res.send({status:"ok"}));
-});
-
-app.listen(8181, () => console.log('Moteur Apple Music prêt sur 8181 !'));
+// [Insère ici ton code server.js version AppleScript que nous avons validé]
