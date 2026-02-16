@@ -1,4 +1,8 @@
+![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)
+![version](https://img.shields.io/badge/version-2026.1.0-blue.svg)
+
 # 🍎 Apple Music for Mac (Modern)
+...# 🍎 Apple Music for Mac (Modern)
 
 Cette intégration permet de contrôler Apple Music sur votre Mac directement depuis **Home Assistant**. 
 
