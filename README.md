@@ -47,3 +47,28 @@ Pour que l'intégration fonctionne, le fichier `server.js` doit tourner sur votr
 
 ```javascript
 // [Insère ici ton code server.js version AppleScript que nous avons validé]
+</details>
+
+🔐 Autorisations macOS
+[!IMPORTANT]
+Pour que le serveur puisse lire les infos de Musique, vous devez donner une autorisation :
+
+Réglages Système → Confidentialité et sécurité → Automatisation.
+
+Cochez la case Musique sous l'application Terminal.
+
+Si besoin, lancez : osascript -e 'tell application "Music" to get name of current track'
+
+❓ Troubleshooting
+L'entité est indisponible ? Vérifiez que le serveur node tourne sur le port 8181.
+
+Le volume ne bouge pas ? Assurez-vous d'avoir bien donné les droits d'Automatisation.
+
+Pas d'image ? L'image nécessite une connexion internet pour interroger l'API iTunes.
+
+🤝 Crédits
+Développé par @adrianleguern.
+Inspiré par la communauté Home Assistant et le besoin d'une intégration macOS moderne.
+
+
+---
