@@ -1,6 +1,7 @@
 <div align="center">
   <img src="logo.png" width="200" alt="Logo Apple Music">
 </div>
+
 # 🍎 Apple Music for Mac (Modern)
 
 ![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)
@@ -8,96 +9,109 @@
 ![maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
 ![platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 
-Apple Music for Mac (Modern) est une intégration fluide et élégante pour contrôler votre musique directement depuis votre tableau de bord **Home Assistant**.
+A Home Assistant integration that bridges your Mac's Music app to your dashboard — playback control, live track info, HD album art, and AirPlay speaker detection.
 
 ---
 
-## 🧐 Qu'est-ce que c'est ?
-Cette intégration fait le pont entre votre Mac et Home Assistant. Elle vous permet de piloter la lecture et d'afficher des informations riches comme les pochettes d'album en haute définition.
+## ✨ Features
 
-### ✨ Fonctionnalités
-* 🛠 **Contrôle complet** : Lecture, Pause, Suivant, Précédent.
-* 🔊 **Gestion du volume** : Réglage précis du son de l'application Musique.
-* 🖼 **Artwork HD** : Récupération automatique de la pochette via iTunes API.
-* 🎶 **Infos Live** : Titre, Artiste et Album mis à jour en temps réel.
-* 🚀 **Zéro latence** : Communication directe via un serveur local léger.
+- 🛠 **Full control** — Play, Pause, Next, Previous
+- 🔊 **Volume** — Precise control of Music.app volume
+- 🖼 **HD artwork** — Album art fetched automatically via iTunes API
+- 🎶 **Live info** — Track, Artist, Album updated in real time
+- 📡 **AirPlay speakers** — Shows which AirPlay outputs are currently active
+- 🚀 **Local only** — Direct communication via a lightweight local server, no cloud
 
 ---
 
 ## 🛠 Installation
 
-### 1️⃣ Prérequis sur le Mac
-1. **Node.js** doit être installé sur votre machine.
-2. Créez un dossier nommé `apple-music-modern`.
-3. Installez les dépendances : `npm install express`.
+### 1. Mac companion server
 
-### 2️⃣ Installation dans Home Assistant
-* **Via HACS** : Ajoutez ce dépôt en tant que *Custom Repository*.
-* **Téléchargement** : Cliquez sur installer et **redémarrez Home Assistant**.
-* **Configuration** : Allez dans *Paramètres* → *Appareils et services* → *Ajouter l'intégration*.
-* Entrez l'**IP de votre Mac** et le port `8181`.
+The integration requires a small Node.js server running on your Mac that bridges Music.app over HTTP.
+
+**Prerequisites:** Node.js installed on the Mac ([nodejs.org](https://nodejs.org) or `brew install node`)
+
+```bash
+# Create a folder for the server
+mkdir ~/apple-music-bridge && cd ~/apple-music-bridge
+
+# Copy server.js from this repo into that folder, then:
+npm install express
+node server.js
+# → "Apple Music bridge listening on :8181"
+```
+
+**macOS permission (required):**
+
+Go to **System Settings → Privacy & Security → Automation** and enable **Music** under Terminal (or whichever app runs the server). Without this, every osascript call silently fails.
+
+To verify: `osascript -e 'tell application "Music" to get name of current track'`
+
+**Keep it running across reboots** using a launchd plist (`~/Library/LaunchAgents/`):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.apple-music-bridge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/YOUR_USERNAME/apple-music-bridge/server.js</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+```
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.apple-music-bridge.plist
+```
+
+### 2. Home Assistant integration (via HACS)
+
+1. HACS → **Custom Repositories** → add `leguernadrian-boop/apple-music-mac-ha` → category: **Integration**
+2. Install and **restart Home Assistant**
+3. **Settings → Devices & Services → Add Integration** → search **Apple Music**
+4. Enter your Mac's IP address and port `8181`
 
 ---
 
-## 🖥️ Configuration du Serveur (Mac)
+## 🔌 Server API reference
 
-Pour que l'intégration fonctionne, le fichier `server.js` doit tourner sur votre Mac. 
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/_ping` | Health check — called by HA during setup to verify connection |
+| GET | `/now_playing` | Current playback state, track info, volume, active AirPlay speakers |
+| PUT | `/play` | Start playback |
+| PUT | `/pause` | Pause playback |
+| PUT | `/next` | Next track |
+| PUT | `/previous` | Previous track |
+| PUT | `/volume` | Set volume — body: `{ "level": 0–100 }` |
 
-1. Copiez le code ci-dessous dans un fichier `server.js`.
-2. Lancez-le avec : `node server.js`
+**`/now_playing` response:**
+```json
+{
+  "player_state": "playing",
+  "name": "Track Title",
+  "artist": "Artist Name",
+  "album": "Album Name",
+  "volume": 75,
+  "speakers": ["Kitchen", "Living Room"]
+}
+```
 
-<details>
-<summary>👉 Cliquez pour voir le code du serveur (server.js)</summary>
+`player_state` values: `"playing"` / `"paused"` / `"stopped"`
 
-```javascript
-const express = require('express');
-const { exec } = require('child_process');
-const app = express();
+---
 
-app.use(express.json());
+## 🤝 Credits
 
-app.get('/now_playing', (req, res) => {
-    const script = `
-        tell application "Music"
-            if it is running then
-                set tName to name of current track
-                set tArtist to artist of current track
-                set tAlbum to album of current track
-                set tVol to sound volume
-                set tState to player state as text
-                return "{\\"player_state\\": \\"" & tState & "\\", \\"name\\": \\"" & tName & "\\", \\"artist\\": \\"" & tArtist & "\\", \\"album\\": \\"" & tAlbum & "\\", \\"volume\\": " & tVol & "}"
-            else
-                return "{\\"player_state\\": \\"stopped\\"}"
-            end if
-        end tell
-    `;
-    exec(\`osascript -e '\${script}'\`, (error, stdout) => {
-        try { res.send(JSON.parse(stdout.trim())); } 
-        catch (e) { res.send({ player_state: "stopped" }); }
-    });
-});
-
-app.put('/play', (req, res) => exec('osascript -e "tell application \\"Music\\" to play"', () => res.send({status:"ok"})));
-app.put('/pause', (req, res) => exec('osascript -e "tell application \\"Music\\" to pause"', () => res.send({status:"ok"})));
-app.put('/next', (req, res) => exec('osascript -e "tell application \\"Music\\" to next track"', () => res.send({status:"ok"})));
-app.put('/previous', (req, res) => exec('osascript -e "tell application \\"Music\\" to previous track"', () => res.send({status:"ok"})));
-app.put('/volume', (req, res) => {
-    const vol = req.body.level;
-    exec(\`osascript -e "tell application \\"Music\\" to set sound volume to \${vol}"\`, () => res.send({status:"ok"}));
-});
-
-app.listen(8181, () => console.log('Moteur Apple Music prêt sur 8181 !'));
-</details>
-
-🔐 Autorisations macOS (Important)
-Pour que le serveur puisse lire les infos de Musique, vous devez donner une autorisation :
-
-Réglages Système → Confidentialité et sécurité → Automatisation.
-
-Cochez la case Musique sous l'application Terminal.
-
-Pour tester, lancez : osascript -e 'tell application "Music" to get name of current track'
-
-🤝 Crédits
-Développé par @adrianleguern.
-Inspiré par le besoin d'une intégration macOS moderne pour Home Assistant.
+Developed by [@adrianleguern](https://github.com/leguernadrian-boop).  
+Inspired by the need for a modern macOS integration for Home Assistant.
